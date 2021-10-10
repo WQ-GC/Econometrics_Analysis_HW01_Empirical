@@ -1,0 +1,558 @@
+---
+output:
+  word_document: default
+---
+# Econometrics Analysis HW01 (R Empirical)
+# **Breakout Room 6**
+### Chai Mu Xuan (01418350) \ \ \ Ge Xiao Min (01107669) 
+### Song Yangao (01436075) \ \ \ \ \ \ Wilson Quah (01425826)
+
+##
+## Q1.Empirical Exercise 4.2 
+## Import dataset E4.2_Earnings_and_Height.xlsx
+```{r}
+library(tinytex)
+library(readxl)
+E4_2_data <- read_excel("E4.2_Earnings_and_Height.xlsx")
+```
+## Plot Histogram for Heights
+```{r}
+hist(E4_2_data$height,
+     main = "Histogram of E4_2 Data Height",
+     xlab = "Height")
+```
+```{r}
+#Compute Median
+getMedian <- median(E4_2_data$height)
+```
+## a) 
+**The median is: `r getMedian`**
+
+
+## Test for Normality (Jarque-Bera Test)
+```{r}
+library(moments)
+jarque.test(E4_2_data$height)
+JB_p_value <- jarque.test(E4_2_data$height)$p.value
+```
+**The p-value is: `r JB_p_value`**
+
+```{r}
+JB_test_statistic <- as.numeric(jarque.test(E4_2_data$height)$statistic)
+JB_test_statistic <- round(JB_test_statistic, 3)
+```
+**The JB-statistic is: `r JB_test_statistic`**
+
+## Create Dummy Variables for Height (DHeight)
+```{r}
+E4_2_data$DHeight <- ifelse(E4_2_data$height > 67, 1 , 0)
+```
+
+## Estimate Model (with DHeight)
+```{r}
+getModel <- lm(E4_2_data$earnings ~ E4_2_data$DHeight)
+summary(getModel)
+plot.default(x = E4_2_data$DHeight,
+             y = E4_2_data$earnings,
+             main = "Scatterplot of Earnings against Dummy Height",
+             xlab = "Dummy Height (0: Less than equal 67, 1: Above 67)",
+             ylab = "Earnings")
+```
+
+```{r}
+earnings_DHeight_coeff <- summary(getModel)$coefficients
+earnings_estimated <- predict(getModel)
+earnings_DHeight_intercept <- round(earnings_DHeight_coeff[1,1], 3)
+earnings_DHeight_slope <- round(earnings_DHeight_coeff[2,1], 3)
+```
+**Earnings = `r format(earnings_DHeight_intercept,8)` + `r earnings_DHeight_slope` * DHeight**
+
+### b)i)
+```{r}
+earnings_67_coeff <- summary(getModel)$coefficients
+earnings_67_slope <- round(earnings_67_coeff[2,1],3)
+earnings_67_intercept <- round(earnings_67_coeff[1,1],3)
+```
+**Estimated Avg. Earnings for workers with Height at most 67 Inches: $`r format(earnings_67_intercept,8)`**
+
+### b)ii)
+```{r}
+earnings_more67 <- round(earnings_67_coeff[1] + earnings_67_coeff[2],3)
+```
+**Estimated Avg. Earnings for workers with Height greater than 67 Inches: $`r format(earnings_more67,8)`**
+
+### b)iii) Do taller workers earn more than shorter workers?
+### Test if DHeight Coefficient = 0
+
+**\ \ H0: There is No difference in earnings between Tall workers and Short workers**
+
+**\ \ \ \ beta1 = 0 **
+
+**\ \ H1: There is a difference in earnings between Tall workers and Short workers**
+
+**\ \ \ \ beta1 != 0 **
+
+```{r}
+getCoefficients      <- summary(getModel)$coefficients
+get_DHeight_TestStat <- round(getCoefficients[2,3], 3)
+get_DHeight_PValue   <- getCoefficients[2,4]
+```
+
+**DHeight Test Statistic: `r get_DHeight_TestStat` **
+
+**Since Test Statistic is greater than  z = 1.96, we reject H0.**
+
+
+**DHeight p-value       : `r format(get_DHeight_PValue,4)` **
+
+**Since p-value is very small, we reject H0. Hence, there is significant evidence to reject H0 that there is no difference in earnings between Tall and Short workers **
+
+
+## How much more?
+## What is 95% Confidence Interval for difference in earnings
+```{r}
+confint(getModel, level = 0.95)
+getCI <- confint(getModel, level = 0.95)
+getCI_DHeight_lower <- round(getCI[2,1], 2) 
+getCI_DHeight_Upper <- round(getCI[2,2], 2)
+```
+**The difference in earnings for Taller workers compared to Short Workers is between **
+
+**[$`r getCI_DHeight_lower` , $`r getCI_DHeight_Upper`]**
+
+**We note that the confidence interval lies in the positive region, suggesting that the the population difference in earnings between Tall and Short workers is a positive value.**
+
+Scatterplot of Earnings against Height
+```{r}
+plot.default(x = E4_2_data$height,
+             y = E4_2_data$earnings,
+             main = "Scatterplot of Earnings against Height",
+             xlab = "Height",
+             ylab = "Earnings")
+
+```
+
+**The Height is computed to the nearest inches. Hence it can be treated as a discrete independent variable. Thus the height data can only take specific integers of inches. If the height data is allowed to take continuous form, then the data will be spread out in between integer values.**
+
+## d) Regression of Earnings on Height
+```{r}
+model_earnings_height <- lm(E4_2_data$earnings ~ E4_2_data$height)
+summary(model_earnings_height)
+getCoefficients <- summary(model_earnings_height)$coefficients
+getInterceptCoefficient <- round(getCoefficients[1,1], 3)
+getHeightCoefficient <- round(getCoefficients[2,1], 3)
+```
+
+**i)The estimated slope    : `r getHeightCoefficient`**
+
+**ii)The estimated Intercept: `r getInterceptCoefficient`**
+
+**Estimated Earnings =  `r getInterceptCoefficient` + `r getHeightCoefficient` * Height **
+
+```{r}
+#Compute Estimated Earnings based on different heights
+getCoefficients <- summary(model_earnings_height)$coefficients
+getInterceptCoeff <- round(getCoefficients[1,1], 3)
+getHeightCoeff <- round(getCoefficients[2,1], 3)
+earnings_height67 <- round(getInterceptCoeff + (getHeightCoeff * 67), 3)
+earnings_height70 <- round(getInterceptCoeff + (getHeightCoeff * 70), 3)
+earnings_height65 <- round(getInterceptCoeff + (getHeightCoeff * 65), 3)
+```
+
+**At Height: 67           Estimated Earnings: $`r format(earnings_height67, 8)`**
+
+**At Height: 70           Estimated Earnings: $`r format(earnings_height70, 8)`**
+
+**At Height: 65           Estimated Earnings: $`r format(earnings_height65, 8)`**
+
+## e) Suppose height measured in cm instead of inches (1 inch == 2.54 cm)
+
+```{r}
+E4_2_data$cHeight = E4_2_data$height * 2.54
+model_earnings_cHeight = lm(E4_2_data$earnings ~ E4_2_data$cHeight)
+summary(model_earnings_cHeight)
+```
+
+```{r}
+get_cHeight_coeff <- summary(model_earnings_cHeight)$coefficients
+intercept_cm <- round(get_cHeight_coeff[1,1], 3)
+slope_cm <- round(get_cHeight_coeff[2,1], 3)
+getRSquared <- summary(model_earnings_cHeight)$r.squared
+```
+
+**Earnings = `r intercept_cm` + `r slope_cm` * cHeight**
+
+i)**Slope Decreases (by a factor 2.54):   `r slope_cm`**
+
+ii)**When Height = 0, no change to Earnings Intercept: $ `r intercept_cm`**
+
+iii)**Multiple R-squared: `r getRSquared`**
+
+iv)**Standard Error of Regression:  26780 **
+
+
+## f)Regression of Earnings on Height for Female workers only
+```{r}
+E4_2_data_females <- subset(E4_2_data, sex == 0) 
+get_model_Height_Females <- lm(E4_2_data_females$earnings ~ E4_2_data_females$height)
+summary(get_model_Height_Females)
+
+get_model_Height_Females_coeff <- summary(get_model_Height_Females)$coefficients
+female_slope <- round(get_model_Height_Females_coeff[2,1], 3)
+```
+
+**The estimated slope for females is: `r female_slope`**
+
+## Compute Female Earnings change if height delta is +1
+```{r}
+delta_earnings_female <- get_model_Height_Females_coeff[2,1]*1
+delta_earnings_female <- round(delta_earnings_female,2)
+```
+
+**The estimated increase in earnings for females when height increases by 1 inch is: \ \ +$`r delta_earnings_female`**
+
+
+## g)Regression of Earnings on Height for Male workers only
+```{r}
+E4_2_data_males <- subset(E4_2_data, sex == 1) 
+get_model_Height_Males <- lm(E4_2_data_males$earnings ~ E4_2_data_males$height)
+summary(get_model_Height_Males)
+get_model_Height_Males_coeff <- summary(get_model_Height_Males)$coefficients
+male_slope <- round(get_model_Height_Males_coeff[2,1], 3)
+```
+
+**The estimated slope for Males is: `r male_slope`**
+
+
+## Compute Male Earnings change if height delta is +1
+```{r}
+delta_earnings_male <- get_model_Height_Males_coeff[2,1]*1
+delta_earnings_male <- round(delta_earnings_male, 2)
+```
+
+**The estimated increase in earnings for males when height increases by 1 inch is: \ \ +$`r delta_earnings_male`**
+
+
+## h)Do you think that height is uncorrelated with other factors that cause earnings
+**No, height is correlated with other factors**
+
+**Scatterplot of Height on Weight**
+```{r}
+plot.default(y = E4_2_data$height, 
+             x = E4_2_data$weight,
+             main = "Scatterplot of Height vs Weight",
+             ylab = "Height", 
+             xlab = "weight")
+model_height_weight <- lm(E4_2_data$height ~ E4_2_data$weight)
+abline(model_height_weight)
+```
+
+**There is a positive correlation between Height and weighted. For Simple Linear Regression, the Weight is captured by the error terms. Therefore, the conditional mean of error terms given Height is not 0. We need to further extend the Simple Linear Regression with Multiple regression including Weight as a control variable to model its dependencies on earnings.**
+
+\newpage
+
+## Q2.Empirical Exericses 4.1 
+## Import dataset E4.1_Growth.xlsx
+```{r}
+library(readr)
+Growth <- read_csv("E4.1_Growth.csv", show_col_types = FALSE)
+```
+
+# Q2a - E4.1a
+```{r}
+model <- lm(Growth$growth~Growth$tradeshare)
+plot.default(x=Growth$tradeshare, y=Growth$growth,
+            main = "Growth on Tradeshare", type = "p", 
+            xlab = "Tradeshare", ylab = "Growth")
+# x and y labels
+abline(model)
+```
+
+# Qn 2b - E4.1b 
+**Yes, based on Fig 4b, Malta is indeed an outlier as it is far from the regression function line.**
+
+# Qn 2c - E4.1c
+$$Growth = \beta_0 + \beta_1 * Tradeshare + u $$
+```{r}
+model <- lm(Growth$growth~Growth$tradeshare)
+summary(model)
+```
+
+$$Estimated slope, β_1 = 2.306434 $$
+$$Estimated intercept, β_0 = 0.640265 $$
+
+$$ (Growth) ̂ = 0.640265 + 2.306434 TradeShare $$
+
+$$if TradeShare = 0.5, (Growth) ̂ = 1.793482 $$
+$$TradeShare = 1.0, (Growth) ̂ = 2.946699 $$
+
+# Qn 2d
+```{r}
+library(readr)
+Growth_no_M <- read_csv("E4.1_Growth_exclude_Malta.csv", show_col_types = FALSE) 
+```
+
+```{r}
+model <- lm(Growth_no_M$growth~Growth_no_M$tradeshare)
+plot.default(x=Growth_no_M$tradeshare, y=Growth_no_M$growth,
+            main = "Growth on Tradeshare (w/o Malta)", type = "p", 
+            xlab = "Tradeshare w/o Malta", ylab = "Growth w/o Malta")
+# x and y labels
+abline(model)
+```
+```{r}
+model <- lm(Growth_no_M$growth~Growth_no_M$tradeshare)
+
+summary(model)
+```
+
+$$ Estimated \ slope, β_1  = 1.680905 $$
+$$ Estimated \ intercept, β_0 = 0.957411 $$
+
+$$ Growth  = 0.957411 + 1.680905 TradeShare $$
+
+
+$$ if \ TradeShare = 0.5, Growth = 1.7978635 $$
+$$ if \ TradeShare = 1.0, Growth = 2.638316 $$
+
+# Qn 2e	part f in E4.1
+
+**Malta is a Southern European island country in the Mediterranean Sea and the world's tenth smallest country in terms of land area. Being a coastal country with deep port, it is a popular freight transport site, receiving imports and exports enroute from other countries travelling from the northern to southern hemisphere via the Suez Canal, hence, explaining its massive shipping transaction volume and hight tradeshare.**
+
+**Malta should not be included in the analysis as its large shipping transaction volume is not representative of the country’s actual annual export or import. The shipping transactions are not intermediate and do not receive further processing or value-added production in Malta itself. Instead, they are passing through Malta as part of a logistic route. Thus, the high tradeshare is not indicative of the country’s actual trade volume as it does not contribute to Malta’s organic economic growth.**
+
+\newpage
+# Question 3: CPS04.xls
+
+**Import in CPS04 dataset**
+```{r}
+library(readxl)
+cps04_data <- read_excel("CPS04.xls")
+```
+## a) Plot Histogram of Average Hourly Earnings
+```{r}
+hist(cps04_data$ahe,
+     main = "Histogram of Average Hourly Earnings",
+     xlab = "Average Hourly Earnings")
+     
+```
+
+## Do you think that ahe is Normally Distributed?
+## Use Jarque-bera Test for Normality
+
+```{r}
+library(tseries)
+library(moments)
+jarque.bera.test(cps04_data$ahe)
+jarque.test(cps04_data$ahe)
+jb_statistic <- jarque.bera.test(cps04_data$ahe)[1]
+jb_p_value <- jarque.bera.test(cps04_data$ahe)[3]
+```
+**The result of Jarque-Bera Test: `r format(jb_statistic, 8)`**
+
+**p-value: `r jb_p_value`**
+
+**Since p-value is low, we reject the null that the average hourly earnings is normal. We conclude that there is significant evidence that the dataset is not normal.**
+
+
+## b)Scatterplot of Average Hourly Earnings on Age
+```{r}
+plot.default(x = cps04_data$age,
+             y = cps04_data$ahe,
+             main = "Scatterplot of Average Hourly Earnings vs Age",
+             xlab = "Age",
+             ylab = "Average Hourly Earnings")
+```
+
+**Visually, there is no heteroskedasticity (variance of error terms do not increase as independent variable age changes)**
+
+## Run Regression of ahe on age with White's Standard Errors
+## c)
+```{r}
+library(estimatr)
+model_robust_ahe_age <- lm_robust(cps04_data$ahe ~ cps04_data$age,
+                           se_type = "HC1")
+summary(model_robust_ahe_age)
+robust_ahe_age_coeff <- summary(model_robust_ahe_age)$coeff
+
+robust_ahe_age_intercept <- round(robust_ahe_age_coeff[1,1], 3)
+#robust_ahe_age_intercept <- format(robust_ahe_age_intercept, digits = 2, nsmall = 3)
+
+robust_ahe_age_slope <- round(robust_ahe_age_coeff[2,1], 3)
+#robust_ahe_age_slope <- format(robust_ahe_age_slope, digits = 2, nsmall = 3)
+```
+**Intercept Term: `r robust_ahe_age_intercept`**
+
+**Slope Term    : `r robust_ahe_age_slope`**
+
+
+## d)Bob (age = 26 years old), Alexis (age = 30 years old) Predict their earnings
+```{r}
+earnings_bob    <- robust_ahe_age_coeff[1,1] + (robust_ahe_age_coeff[2,1] * 26)
+earnings_alexis <- robust_ahe_age_coeff[1,1] + (robust_ahe_age_coeff[2,1] * 30)
+
+earnings_bob <- format(earnings_bob, digits = 4)
+earnings_alexis <- format(earnings_alexis, digits = 4)
+
+```
+
+**Bob's Estimated Earnings   : $`r earnings_bob`**
+
+**Alexis's Estimated Earnings: $`r earnings_alexis`**
+
+## e)Test the hypothesis that the slope is 0
+H0: The Slope(beta1) is 0
+H1: The Slope(beta1) is != 0
+
+```{r}
+slope_coeff_p_value  <- robust_ahe_age_coeff[2,4]
+slope_coeff_testStat <- round(robust_ahe_age_coeff[2,3], 3)
+slope_coeff_SE       <- robust_ahe_age_coeff[2,2]
+slope_coeff_CI_Lower <- round(robust_ahe_age_coeff[2,5], 3)
+slope_coeff_CI_Upper <- round(robust_ahe_age_coeff[2,6], 3)
+```
+**At alpha = 5% Significance level**
+
+**Slope p-value: `r slope_coeff_p_value` is small, we reject H0. We conclude that there is sufficent evidence that the slope is not 0**
+
+**Slope Test Statistic: `r slope_coeff_testStat`. Since the test statistic is greater than 1.960. We reject H0**
+
+**Confidence Interval for Slope: [`r slope_coeff_CI_Lower` , `r slope_coeff_CI_Upper`] We note that the Confidence interval is in the positive region. Hence the slope is not 0**
+
+## f) Inteprete RSquare
+**The Regression R2 is a measure of goodness of fit of the regression model on the sample data, it shows the fraction of the sample variance of Y predicted by X. R2 is the ratio of ESS (Explained Sum of Squares) to TSS (Total Sum of Squares). In this study, R2 it is 0.0222 (the model only explains 2.22% of the variation of the average hourly earnings). In summary, this regression model of single regressor age does not predict the average hourly earnings well. This suggests that there may be other relevant factors which may influence the earnings.**
+
+## g) Run Regression with White Standard Errors (lm_robust)
+```{r}
+model_robust_ahe_bachelor <- lm_robust(cps04_data$ahe ~ cps04_data$bachelor,
+                                       se_type = "HC1")
+summary(model_robust_ahe_bachelor)
+robust_ahe_bachelor_coeff <- summary(model_robust_ahe_bachelor)$coeff
+robust_ahe_bachelor_intercept <- round(robust_ahe_bachelor_coeff[1,1], 2)
+robust_ahe_bachelor_slope <- round(robust_ahe_bachelor_coeff[2,1], 2)
+robust_ahe_bachelor_intercept_slope <- round(robust_ahe_bachelor_coeff[2,1] + robust_ahe_bachelor_coeff[1,1], 2)
+```
+**A binary variable is also an indicator variable (aka Dummy variable). The textbook mentions that the slope for a binary variable regressor does not make sense. Given that the worker has no Bachelor (Bachelor = 0), Average hourly earnings will be $`r robust_ahe_bachelor_intercept`/hour. Given that the worker has a Bachelor (Bachelor = 1), Average hourly earnings will be `r robust_ahe_bachelor_intercept_slope`/hour. A worker with a Bachelor commands a premium average hourly earnings of $`r robust_ahe_bachelor_slope`/hour.**
+
+## h) Run Regression with White Standard Errors (lm_robust)
+```{r}
+model_robust_ahe_gender <- lm_robust(cps04_data$ahe ~ cps04_data$female,
+                                       se_type = "HC1")
+
+summary(model_robust_ahe_gender)
+robust_ahe_gender_coeff <- summary(model_robust_ahe_gender)$coeff
+robust_ahe_gender_intercept <- round(robust_ahe_gender_coeff[1,1], 2)
+robust_ahe_gender_slope <- round(robust_ahe_gender_coeff[2,1], 2) 
+robust_ahe_gender_slope_intercept <- round(robust_ahe_gender_intercept + robust_ahe_gender_slope, 2) 
+```
+
+**Similar to the previous regressor on Bachelor, but the coefficient of Female regressor is negative value. Given that a worker is a male (Female = 0), he will be predicted to have an average hourly earning of $`r robust_ahe_gender_intercept`/hour. Given that a worker is a female (Female = 1), she will be predicted to have an average hourly earning of $`r robust_ahe_gender_slope_intercept`/hour.**
+
+\newpage
+# Question 4: Empirical Exercise 5.3
+## Q E.5.3
+```{r}
+BS <- read_excel("BS.xlsx")
+```
+
+### (a) i) What is average birth weight for infants for all mothers?
+```{r}
+birthweight_avg <- mean(BS$birthweight)
+birthweight_avg <- round(birthweight_avg, 2)
+```
+**The avg. birth weight of infants for all mothers: `r birthweight_avg` grams**
+
+### (a) ii) What is average birth weight for infants for mothers who smoked? 
+```{r}
+## filter smoker from the data set
+smoker.weight <- subset(BS, smoker == 1)
+smoker.weight_avg <- mean(smoker.weight$birthweight)
+smoker.weight_avg <- round(smoker.weight_avg, 2)
+```
+**The avg. birth weight of infants for mothers who smoke: `r smoker.weight_avg` grams**
+
+### (a) iii) What is average birth weight for infants for mothers who do not smoke? 
+```{r}
+## filter non-smoker from the data set
+nonsmoker.weight <- subset(BS, smoker == 0)
+nonsmoker.weight_avg <- mean(nonsmoker.weight$birthweight)
+nonsmoker.weight_avg <- round(nonsmoker.weight_avg, 2)
+```
+**The avg. birth weight of infants for mothers who do not smoke: `r nonsmoker.weight_avg` grams**
+
+
+### (b)i) Estimate the differerence in birth weight for Smoking & Non-Smoking Mothers
+```{r}
+model_birthweight_smoker <- lm(BS$birthweight ~ BS$smoker)
+summary(model_birthweight_smoker)
+birthweight_smoker_coeff <- summary(model_birthweight_smoker)$coefficients
+
+birthweight_smoker_intercept <- birthweight_smoker_coeff[1,1]
+birthweight_smoker_intercept <- round(birthweight_smoker_intercept, 2)
+
+birthweight_smoker_slope <- birthweight_smoker_coeff[2,1]
+birthweight_smoker_slope <- round(birthweight_smoker_slope, 2)
+```
+**Birthweight = `r birthweight_smoker_intercept` + `r birthweight_smoker_slope` * smoker**
+
+**Birthweight (non-smoking mother) = (`r birthweight_smoker_intercept` + `r birthweight_smoker_slope` * 0) grams**
+
+**Birthweight (mother who smokes)  = (`r birthweight_smoker_intercept` + `r birthweight_smoker_slope` * 1) grams**
+
+**Since the smoker regressor is a dummy variable, the difference in average birth weight of infants for mothers who smoke vs mothers who do not smoke is just the slope (`r birthweight_smoker_slope` grams)**
+
+### b)ii) What is the Standard Error for the estimated difference?
+
+```{r}
+birthweight_smoker_slope_SE <- birthweight_smoker_coeff[2,2]
+birthweight_smoker_slope_SE <- round(birthweight_smoker_slope_SE, 2)
+```
+
+**The Standard Error for the slope coefficient is `r birthweight_smoker_slope_SE`**
+
+### Alternatively, we can compute the Standard Error of the slope for Smokers
+```{r}
+sd(BS$birthweight)/sqrt(length(BS$birthweight))
+## To caculate the standard error of  birthweight of smoker mothers
+smoker.weight_sd <- sd(smoker.weight$birthweight)
+```
+
+```{r}
+## To caculate the standard error of  birthweight of smoker mothers
+nonsmoker.weight_sd <- sd(nonsmoker.weight$birthweight)
+```
+```{r}
+nonsmoker.weight_sd <- sd(nonsmoker.weight$birthweight) /
+                          sqrt(length(nonsmoker.weight$birthweight))
+```
+```{r}
+## The standard error of the difference between smoker and nonsmoker birthweight
+std.s.non <- sqrt((sd(nonsmoker.weight$birthweight)/sqrt(length(nonsmoker.weight$birthweight)))^2+(sd(smoker.weight$birthweight)/sqrt(length(smoker.weight$birthweight)))^2)
+std.s.non <- format(round(std.s.non, 2), nsmall = 3)
+std.s.non <- as.numeric(std.s.non)
+```
+**The Standard Error for the difference in birth weight: `r std.s.non`**
+
+### b) iii) Construct 9% Confidence Interval for the Difference in birth weight
+```{r}
+CI_error <- round((qnorm(0.975)* std.s.non),2)
+CI_left <- round((birthweight_smoker_slope - CI_error), 2)
+CI_right <- round((birthweight_smoker_slope + CI_error), 2)
+```
+**Therefore, the 95% confidence interval is [`r CI_left` , `r CI_right`]**
+
+### c) Run Regression of Infant Birth Weight on Smoker
+**The intercept is the average infant birth weight for non-smokers (Smoker = 0). The slope is the difference between average infant birth weights for smokers (Smoker = 1) and non-smokers (Smoker = 0)**
+
+### c)ii)
+They are roughly the same.
+
+### c)iii)
+```{r}
+CI_smoker_slope <- confint(model_birthweight_smoker, level = 0.95)
+```
+**The Confidence Interval is [`r CI_smoker_slope[2,1]` , `r CI_smoker_slope[2,2]`]. This the same as the confidence interval in (b). We note that the Confidence Interval lie in the negative region and that we have 95% confidence that the difference in infant birth weight lies in the negative region (Mothers who smoke are correlated with a decrease in infant birth weight) **
+
+### d)
+**No, smoking is not uncorrelated with other factors. Just solely determining the birth weight of infants based on whether a mother smokes is not a good gauge. The simple linear regression model RSquared gives 0.0286 (which allows it to estimate only 2.8% of the infant's weight). Additionally, we know that there are other factors that are correlated with whether a mother smokes or not, these variables may include education level, married or unmarried, alcohol consumption, number of drinks per week.**
+
